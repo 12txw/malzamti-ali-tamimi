@@ -1,0 +1,46 @@
+
+name: Build Malzamti APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '*.zip'
+      - '.github/workflows/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Extract project
+        run: |
+          mkdir -p extracted
+          ARCHIVE=$(find . -maxdepth 1 -name '*.zip' | head -n 1)
+          test -n "$ARCHIVE"
+          unzip -q "$ARCHIVE" -d extracted
+
+      - name: Build Android APK
+        run: |
+          SCRIPT=$(find extracted -type f -name 'build_android.sh' | head -n 1)
+          test -n "$SCRIPT"
+          cd "$(dirname "$SCRIPT")"
+          bash build_android.sh
+          APK=$(find . -type f -name '*.apk' | head -n 1)
+          test -n "$APK"
+          mkdir -p "$GITHUB_WORKSPACE/apk"
+          cp "$APK" "$GITHUB_WORKSPACE/apk/Malzamti.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Malzamti-Android-APK
+          path: apk/Malzamti.apk
